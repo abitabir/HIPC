@@ -13,21 +13,28 @@ int no_output = 0;
 int output_freq = 100;
 int enable_checkpoints = 0;
 int fixed_dt = 0;
+int validate = 0;
+int count_time = 0;
+int count_cache_misses = 0;
+
 
 static struct option long_options[] = {
-	{"del-t",      required_argument, 0, 'd'},
-	{"cellx",      required_argument, 0, 'x'},
-	{"celly",      required_argument, 0, 'y'},
-	{"freq",       required_argument, 0, 'f'},
-	{"endtime",    required_argument, 0, 't'},
-	{"noio",       no_argument,       0, 'd'},
-	{"output",     required_argument, 0, 'o'},
-	{"checkpoint", no_argument,       0, 'c'},	
-    {"verbose",    no_argument,       0, 'v'},
-    {"help",       no_argument,       0, 'h'},
+	{"del-t",         required_argument, 0, 'd'},
+	{"cellx",         required_argument, 0, 'x'},
+	{"celly",         required_argument, 0, 'y'},
+	{"freq",          required_argument, 0, 'f'},
+	{"endtime",       required_argument, 0, 't'},
+	{"noio",          no_argument,       0, 'd'},
+	{"output",        required_argument, 0, 'o'},
+	{"checkpoint",    no_argument,       0, 'c'},	
+    {"verbose",       no_argument,       0, 'v'},	
+    {"validate",      no_argument,       0, 'i'},	
+    {"countseconds",  no_argument,       0, 's'},	
+    {"countmisses",   no_argument,       0, 'm'},
+    {"help",          no_argument,       0, 'h'},
 	{0, 0, 0, 0}
 };
-#define GETOPTS "d:x:y:f:t:no:cvh"
+#define GETOPTS "d:x:y:f:t:no:cvismh"
 
 /**
  * @brief Print a help message
@@ -47,6 +54,9 @@ void print_help(char *progname) {
 	fprintf(stderr, "  -o FILE, --output=FILE  Set base filename for output (final output will be in BASENAME.vtk\n");
 	fprintf(stderr, "  -c, --checkpoint        Enable checkpointing, checkpoints will be in BASENAME-ITERATION.vtk\n");
 	fprintf(stderr, "  -v, --verbose           Set verbose output\n");
+	fprintf(stderr, "  -i, --validate          Enable serial validation against parralell. Cannot be used with either s or m\n");
+	fprintf(stderr, "  -s, --countseconds      Print timing in seconds of major functions. Cannot be used with either i or m\n");
+	fprintf(stderr, "  -m, --countmisses       Print data and instruction miss counts during major functions. Cannot be used with either i or s\n");
 	fprintf(stderr, "  -h, --help              Print this message and exit\n");
 	fprintf(stderr, "\n");
 	fprintf(stderr, "Report bugs to <steven.wright@york.ac.uk>\n");
@@ -92,6 +102,15 @@ void parse_args(int argc, char *argv[]) {
 			case 'v':
 				verbose = 1;
 				break;
+			case 'i':
+				validate = 1;
+				break;
+			case 's':
+				count_time = 1;
+				break;
+			case 'm':
+				count_cache_misses = 1;
+				break;
 			case '?':
             case 'h':
 				print_help(argv[0]);
@@ -116,5 +135,8 @@ void print_opts() {
 	printf("  noio             = %14d\n", no_output);
 	printf("  output           = %s\n", get_basename());
 	printf("  checkpoint       = %14d\n", enable_checkpoints);	
+	printf("  validate         = %14d\n", validate);	
+	printf("  counttime        = %14d\n", count_time);	
+	printf("  countmisses      = %14d\n", count_cache_misses);	
     printf("=======================================\n");
 }
