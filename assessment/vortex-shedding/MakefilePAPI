@@ -15,7 +15,10 @@ obj/%.o: %.c
 	$(CC) -c -o $@ $< $(CFLAGS) -lpapi
 
 vortex: $(OBJ)
-	$(CC) -o $@ $^ $(CFLAGS) $(LIBFLAGS) -lpapi 
+	$(CC) -o $@ $^ $(CFLAGS) $(LIBFLAGS) -lpapi
+
+vortex-papi: $(OBJ)
+	gcc -o vortex -O3 -lm -lpapi
 
 clean:
 	rm -Rf $(OBJDIR)

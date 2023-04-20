@@ -1,10 +1,10 @@
-#ifndef SETUP_H
-#define SETUP_H
+#ifndef SETUP_SERIAL_H
+#define SETUP_SERIAL_H
 
-void set_defaults();
-void setup();
-void allocate_arrays();
-void free_arrays();
-void problem_set_up();
+// void set_defaults_serial();
+void setup_serial();
+void allocate_arrays_serial();
+void free_arrays_serial();
+void problem_set_up_serial();
 
 #endif

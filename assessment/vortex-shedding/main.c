@@ -14,15 +14,9 @@
 #include "boundary.h"
 #include "args.h"
 #include "vortex.h"
-#include "data_serial.h"
-#include "vtk_serial.h"
-#include "setup_serial.h"
-#include "boundary_serial.h"
-#include "args_serial.h"
-#include "vortex_serial.h"
-//! move these ^ to vortex so everything is private BUT u and v renamed to u_serial and v_serial
+#include "serial.h"
 
-
+struct timespec timer;
 
 void parallel_looping(int * i_return, double * r_return, double * t_return) {
     allocate_arrays();
@@ -62,16 +56,20 @@ void parallel_looping(int * i_return, double * r_return, double * t_return) {
 
 int validated() {
     #define MAX_ERR 1e-6
-    
+    double ** u_serial, ** v_serial;
+    int u_size_y_serial, u_size_x_serial, v_size_y_serial, v_size_x_serial;
+    double temp_u, temp_u_serial, temp_v, temp_v_serial;
+    serial_looping(u_serial, v_serial, &u_size_y_serial, &u_size_x_serial, &v_size_y_serial, &v_size_x_serial);
     printf("Validating...\n");
-    double *** u_v_serial = serial_looping();  //! make return two arrays? pointers
-    double ** u_serial = u_v_serial[0];
-    double ** v_serial = u_v_serial[1];
-    
-    for (int j = 0; j < u_size_y; j++) {
-        for (int i = 0; i < u_size_x; i++) {
-            if (fabs(u[i][j] - u_serial[i][j]) > MAX_ERR) {
-                printf("u[i][j] = %lf\n u_serial[i][j] = %lf\n fabs(u[i][j] - u_serial[i][j]) = %lf\n", u[i][j], u_serial[i][j], fabs(u[i][j] - u_serial[i][j]));
+    printf("%lf", u_size_y_serial);    
+    for (int j = 0; j < u_size_y_serial; j++) {
+        printf("sommat");
+        for (int i = 0; i < u_size_x_serial; i++) {
+            temp_u = u[i][j];
+            temp_u_serial = u_serial[i][j];
+            printf("u[i][j] = %lf\n u_serial[i][j] = %lf\n fabs(u[i][j] - u_serial[i][j]) = %lf\n", temp_u, temp_u_serial, fabs(temp_u - temp_u_serial));
+            if (fabs(temp_u - temp_v) > MAX_ERR) {
+                printf("u[i][j] = %lf\n u_serial[i][j] = %lf\n fabs(u[i][j] - u_serial[i][j]) = %lf\n", temp_u, temp_u_serial, fabs(temp_u - temp_u_serial));
                 return 0;
             }
         }
@@ -79,8 +77,10 @@ int validated() {
 
     for (int j = 0; j < v_size_y; j++) {
         for (int i = 0; i < v_size_x; i++) {
-            if (fabs(v[i][j] - v_serial[i][j]) > MAX_ERR) {
-                printf("v[i][j] = %lf\n v_serial[i][j] = %lf\n fabs(v[i][j] - v_serial[i][j]) = %lf\n", v[i][j], v_serial[i][j], fabs(v[i][j] - v_serial[i][j]));
+            temp_v = v[i][j];
+            temp_v_serial = v_serial[i][j];
+            if (fabs(temp_v - temp_v_serial) > MAX_ERR) {
+                printf("v[i][j] = %lf\n v_serial[i][j] = %lf\n fabs(v[i][j] - v_serial[i][j]) = %lf\n", temp_v, temp_v_serial, fabs(temp_v - temp_v_serial));
                 return 0;
             }
         }
@@ -89,41 +89,6 @@ int validated() {
     printf("Validated!\n");
 
     return 1;
-}
-
-void serial_looping() {
-    //! append _serial suffix to all var and func names to avoid data corruption
-    allocate_arrays();
-    problem_set_up();
-
-    double res;
-
-    /* Main loop */
-    int iters = 0;
-    double t;
-    for (t = 0.0; t < t_end; t += del_t, iters++) {
-        if (!fixed_dt)
-            set_timestep_interval();
-
-        compute_tentative_velocity();
-
-        compute_rhs();
-
-        res = poisson();
-
-        update_velocity();
-
-        apply_boundary_conditions();
-
-        /*  // commenting out printings and writings
-        if ((iters % output_freq == 0)) {
-            printf("Step %8d, Time: %14.8e (del_t: %14.8e), Residual: %14.8e\n", iters, t+del_t, del_t, res);
- 
-            if ((!no_output) && (enable_checkpoints))
-                write_checkpoint(iters, t+del_t);
-        }
-        */
-    } /* End of main loop */
 }
 
 /**
@@ -135,8 +100,7 @@ double get_time() {
 }
 
 void count_time_parallel_looping(int * i_return, double * r_return, double * t_return) {
-    struct timespec timer;
-
+    
 	double total_problem_time = get_time();
 	double allocate_arrays_time = 0.0;
 	double problem_set_up_time = 0.0;
@@ -347,7 +311,6 @@ int main(int argc, char *argv[]) {
     set_defaults();
     parse_args(argc, argv);
     setup();
-    
     // different loopings can be shared up to here
 
     int iters;

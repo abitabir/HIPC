@@ -6,6 +6,7 @@
 
 #include "args.h"
 #include "data.h"
+#include "data_serial.h"
 #include "vtk.h"
 
 int verbose = 0;
@@ -76,16 +77,20 @@ void parse_args(int argc, char *argv[]) {
         switch (c) {
 			case 'x':
 				imax = atoi(optarg);
+				imax_serial = imax;
 				break;
 			case 'y':
 				jmax = atoi(optarg);
+				imax_serial = jmax;
 				break;
 			case 't':
                 t_end = atof(optarg);
+				t_end_serial = t_end;
 				break;
             case 'd':
                 fixed_dt = 1;
                 del_t = atof(optarg);
+                del_t_serial = del_t;
                 break;
 			case 'f':
 				output_freq = atoi(optarg);

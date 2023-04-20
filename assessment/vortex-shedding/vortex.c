@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <math.h>
 
+#include "vortex.h"
 #include "data.h"
 #include "vtk.h"
 #include "setup.h"

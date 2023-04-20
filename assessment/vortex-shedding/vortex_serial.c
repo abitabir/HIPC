@@ -6,72 +6,71 @@
 #include <fcntl.h>
 #include <math.h>
 
-#include "data.h"
-#include "vtk.h"
-#include "setup.h"
-#include "boundary.h"
-#include "args.h"
+#include "data_serial.h"
+// #include "vtk.h"
+#include "setup_serial.h"
+#include "boundary_serial.h"
 
 /**
  * @brief Computation of tentative velocity field (f, g)
  * 
  */
-void compute_tentative_velocity() {
-    for (int i = 1; i < imax; i++) {  //! perfect loop
-        for (int j = 1; j < jmax+1; j++) {
+void compute_tentative_velocity_serial() {
+    for (int i = 1; i < imax_serial; i++) {  //! perfect loop
+        for (int j = 1; j < jmax_serial+1; j++) {
             /* only if both adjacent cells are fluid cells */
-            if ((flag[i][j] & C_F) && (flag[i+1][j] & C_F)) {
-                double du2dx = ((u[i][j] + u[i+1][j]) * (u[i][j] + u[i+1][j]) +
-                                y * fabs(u[i][j] + u[i+1][j]) * (u[i][j] - u[i+1][j]) -
-                                (u[i-1][j] + u[i][j]) * (u[i-1][j] + u[i][j]) -
-                                y * fabs(u[i-1][j] + u[i][j]) * (u[i-1][j]-u[i][j]))
-                                / (4.0 * delx);
-                double duvdy = ((v[i][j] + v[i+1][j]) * (u[i][j] + u[i][j+1]) +
-                                y * fabs(v[i][j] + v[i+1][j]) * (u[i][j] - u[i][j+1]) -
-                                (v[i][j-1] + v[i+1][j-1]) * (u[i][j-1] + u[i][j]) -
-                                y * fabs(v[i][j-1] + v[i+1][j-1]) * (u[i][j-1] - u[i][j]))
-                                / (4.0 * dely);
-                double laplu = (u[i+1][j] - 2.0 * u[i][j] + u[i-1][j]) / delx / delx +
-                                (u[i][j+1] - 2.0 * u[i][j] + u[i][j-1]) / dely / dely;
+            if ((flag_serial[i][j] & C_F) && (flag_serial[i+1][j] & C_F)) {
+                double du2dx = ((u_serial[i][j] + u_serial[i+1][j]) * (u_serial[i][j] + u_serial[i+1][j]) +
+                                y_serial * fabs(u_serial[i][j] + u_serial[i+1][j]) * (u_serial[i][j] - u_serial[i+1][j]) -
+                                (u_serial[i-1][j] + u_serial[i][j]) * (u_serial[i-1][j] + u_serial[i][j]) -
+                                y_serial * fabs(u_serial[i-1][j] + u_serial[i][j]) * (u_serial[i-1][j]-u_serial[i][j]))
+                                / (4.0 * delx_serial);
+                double duvdy = ((v_serial[i][j] + v_serial[i+1][j]) * (u_serial[i][j] + u_serial[i][j+1]) +
+                                y_serial * fabs(v_serial[i][j] + v_serial[i+1][j]) * (u_serial[i][j] - u_serial[i][j+1]) -
+                                (v_serial[i][j-1] + v_serial[i+1][j-1]) * (u_serial[i][j-1] + u_serial[i][j]) -
+                                y_serial * fabs(v_serial[i][j-1] + v_serial[i+1][j-1]) * (u_serial[i][j-1] - u_serial[i][j]))
+                                / (4.0 * dely_serial);
+                double laplu = (u_serial[i+1][j] - 2.0 * u_serial[i][j] + u_serial[i-1][j]) / delx_serial / delx_serial +
+                                (u_serial[i][j+1] - 2.0 * u_serial[i][j] + u_serial[i][j-1]) / dely_serial / dely_serial;
    
-                f[i][j] = u[i][j] + del_t * (laplu / Re - du2dx - duvdy);
+                f_serial[i][j] = u_serial[i][j] + del_t_serial * (laplu / Re_serial - du2dx - duvdy);
             } else {
-                f[i][j] = u[i][j];
+                f_serial[i][j] = u_serial[i][j];
             }
         }
     }
-    for (int i = 1; i < imax+1; i++) {
-        for (int j = 1; j < jmax; j++) {  //! perfect loop
+    for (int i = 1; i < imax_serial+1; i++) {
+        for (int j = 1; j < jmax_serial; j++) {  //! perfect loop
             /* only if both adjacent cells are fluid cells */
-            if ((flag[i][j] & C_F) && (flag[i][j+1] & C_F)) {
-                double duvdx = ((u[i][j] + u[i][j+1]) * (v[i][j] + v[i+1][j]) +
-                                y * fabs(u[i][j] + u[i][j+1]) * (v[i][j] - v[i+1][j]) -
-                                (u[i-1][j] + u[i-1][j+1]) * (v[i-1][j] + v[i][j]) -
-                                y * fabs(u[i-1][j] + u[i-1][j+1]) * (v[i-1][j]-v[i][j]))
-                                / (4.0 * delx);
-                double dv2dy = ((v[i][j] + v[i][j+1]) * (v[i][j] + v[i][j+1]) +
-                                y * fabs(v[i][j] + v[i][j+1]) * (v[i][j] - v[i][j+1]) -
-                                (v[i][j-1] + v[i][j]) * (v[i][j-1] + v[i][j]) -
-                                y * fabs(v[i][j-1] + v[i][j]) * (v[i][j-1] - v[i][j]))
-                                / (4.0 * dely);
-                double laplv = (v[i+1][j] - 2.0 * v[i][j] + v[i-1][j]) / delx / delx +
-                                (v[i][j+1] - 2.0 * v[i][j] + v[i][j-1]) / dely / dely;
+            if ((flag_serial[i][j] & C_F) && (flag_serial[i][j+1] & C_F)) {
+                double duvdx = ((u_serial[i][j] + u_serial[i][j+1]) * (v_serial[i][j] + v_serial[i+1][j]) +
+                                y_serial * fabs(u_serial[i][j] + u_serial[i][j+1]) * (v_serial[i][j] - v_serial[i+1][j]) -
+                                (u_serial[i-1][j] + u_serial[i-1][j+1]) * (v_serial[i-1][j] + v_serial[i][j]) -
+                                y_serial * fabs(u_serial[i-1][j] + u_serial[i-1][j+1]) * (v_serial[i-1][j]-v_serial[i][j]))
+                                / (4.0 * delx_serial);
+                double dv2dy = ((v_serial[i][j] + v_serial[i][j+1]) * (v_serial[i][j] + v_serial[i][j+1]) +
+                                y_serial * fabs(v_serial[i][j] + v_serial[i][j+1]) * (v_serial[i][j] - v_serial[i][j+1]) -
+                                (v_serial[i][j-1] + v_serial[i][j]) * (v_serial[i][j-1] + v_serial[i][j]) -
+                                y_serial * fabs(v_serial[i][j-1] + v_serial[i][j]) * (v_serial[i][j-1] - v_serial[i][j]))
+                                / (4.0 * dely_serial);
+                double laplv = (v_serial[i+1][j] - 2.0 * v_serial[i][j] + v_serial[i-1][j]) / delx_serial / delx_serial +
+                                (v_serial[i][j+1] - 2.0 * v_serial[i][j] + v_serial[i][j-1]) / dely_serial / dely_serial;
 
-                g[i][j] = v[i][j] + del_t * (laplv / Re - duvdx - dv2dy);
+                g_serial[i][j] = v_serial[i][j] + del_t_serial * (laplv / Re_serial - duvdx - dv2dy);
             } else {
-                g[i][j] = v[i][j];
+                g_serial[i][j] = v_serial[i][j];
             }
         }
     }
 
     /* f & g at external boundaries */
-    for (int j = 1; j < jmax+1; j++) {
-        f[0][j]    = u[0][j];
-        f[imax][j] = u[imax][j];
+    for (int j = 1; j < jmax_serial+1; j++) {
+        f_serial[0][j]    = u_serial[0][j];
+        f_serial[imax_serial][j] = u_serial[imax_serial][j];
     }
-    for (int i = 1; i < imax+1; i++) {
-        g[i][0]    = v[i][0];
-        g[i][jmax] = v[i][jmax];
+    for (int i = 1; i < imax_serial+1; i++) {
+        g_serial[i][0]    = v_serial[i][0];
+        g_serial[i][jmax_serial] = v_serial[i][jmax_serial];
     }
 }
 
@@ -80,14 +79,14 @@ void compute_tentative_velocity() {
  * @brief Calculate the right hand side of the pressure equation 
  * 
  */
-void compute_rhs() {
-    for (int i = 1; i < imax+1; i++) {
-        for (int j = 1;j < jmax+1; j++) {  //! perfect loop
-            if (flag[i][j] & C_F) {
+void compute_rhs_serial() {
+    for (int i = 1; i < imax_serial+1; i++) {
+        for (int j = 1;j < jmax_serial+1; j++) {  //! perfect loop
+            if (flag_serial[i][j] & C_F) {
                 /* only for fluid and non-surface cells */
-                rhs[i][j] = ((f[i][j] - f[i-1][j]) / delx + 
-                             (g[i][j] - g[i][j-1]) / dely)
-                             / del_t;
+                rhs_serial[i][j] = ((f_serial[i][j] - f_serial[i-1][j]) / delx_serial + 
+                             (g_serial[i][j] - g_serial[i][j-1]) / dely_serial)
+                             / del_t_serial;
             }
         }
     }
@@ -100,76 +99,76 @@ void compute_rhs() {
  * @return Calculated residual of the computation
  * 
  */
-double poisson() {
-    double rdx2 = 1.0 / (delx * delx);
-    double rdy2 = 1.0 / (dely * dely);
-    double beta_2 = -omega / (2.0 * (rdx2 + rdy2));
+double poisson_serial() {
+    double rdx2 = 1.0 / (delx_serial * delx_serial);
+    double rdy2 = 1.0 / (dely_serial * dely_serial);
+    double beta_2 = -omega_serial / (2.0 * (rdx2 + rdy2));
 
     double p0 = 0.0;
     /* Calculate sum of squares */
-    for (int i = 1; i < imax+1; i++) {  //! perfect loop
-        for (int j = 1; j < jmax+1; j++) {
-            if (flag[i][j] & C_F) { p0 += p[i][j] * p[i][j]; }
+    for (int i = 1; i < imax_serial+1; i++) {  //! perfect loop
+        for (int j = 1; j < jmax_serial+1; j++) {
+            if (flag_serial[i][j] & C_F) { p0 += p_serial[i][j] * p_serial[i][j]; }
         }
     }
    
-    p0 = sqrt(p0 / fluid_cells); 
+    p0 = sqrt(p0 / fluid_cells_serial); 
     if (p0 < 0.0001) { p0 = 1.0; }
 
     /* Red/Black SOR-iteration */
     int iter;
     double res = 0.0;
-    for (iter = 0; iter < itermax; iter++) {
+    for (iter = 0; iter < itermax_serial; iter++) {
         for (int rb = 0; rb < 2; rb++) {
-            for (int i = 1; i < imax+1; i++) {
-                for (int j = 1; j < jmax+1; j++) {  //! perfect loop
+            for (int i = 1; i < imax_serial+1; i++) {
+                for (int j = 1; j < jmax_serial+1; j++) {  //! perfect loop
                     if ((i + j) % 2 != rb) { continue; }
-                    if (flag[i][j] == (C_F | B_NSEW)) {
+                    if (flag_serial[i][j] == (C_F | B_NSEW)) {
                         /* five point star for interior fluid cells */
-                        p[i][j] = (1.0 - omega) * p[i][j] - 
-                              beta_2 * ((p[i+1][j] + p[i-1][j] ) *rdx2
-                                  + (p[i][j+1] + p[i][j-1]) * rdy2
-                                  - rhs[i][j]);
-                    } else if (flag[i][j] & C_F) { 
+                        p_serial[i][j] = (1.0 - omega_serial) * p_serial[i][j] - 
+                              beta_2 * ((p_serial[i+1][j] + p_serial[i-1][j] ) *rdx2
+                                  + (p_serial[i][j+1] + p_serial[i][j-1]) * rdy2
+                                  - rhs_serial[i][j]);
+                    } else if (flag_serial[i][j] & C_F) { 
                         /* modified star near boundary */
 
-                        double eps_E = ((flag[i+1][j] & C_F) ? 1.0 : 0.0);
-                        double eps_W = ((flag[i-1][j] & C_F) ? 1.0 : 0.0);
-                        double eps_N = ((flag[i][j+1] & C_F) ? 1.0 : 0.0);
-                        double eps_S = ((flag[i][j-1] & C_F) ? 1.0 : 0.0);
+                        double eps_E = ((flag_serial[i+1][j] & C_F) ? 1.0 : 0.0);
+                        double eps_W = ((flag_serial[i-1][j] & C_F) ? 1.0 : 0.0);
+                        double eps_N = ((flag_serial[i][j+1] & C_F) ? 1.0 : 0.0);
+                        double eps_S = ((flag_serial[i][j-1] & C_F) ? 1.0 : 0.0);
 
-                        double beta_mod = -omega / ((eps_E + eps_W) * rdx2 + (eps_N + eps_S) * rdy2);
-                        p[i][j] = (1.0 - omega) * p[i][j] -
-                            beta_mod * ((eps_E * p[i+1][j] + eps_W * p[i-1][j]) * rdx2
-                                + (eps_N * p[i][j+1] + eps_S * p[i][j-1]) * rdy2
-                                - rhs[i][j]);
+                        double beta_mod = -omega_serial / ((eps_E + eps_W) * rdx2 + (eps_N + eps_S) * rdy2);
+                        p_serial[i][j] = (1.0 - omega_serial) * p_serial[i][j] -
+                            beta_mod * ((eps_E * p_serial[i+1][j] + eps_W * p_serial[i-1][j]) * rdx2
+                                + (eps_N * p_serial[i][j+1] + eps_S * p_serial[i][j-1]) * rdy2
+                                - rhs_serial[i][j]);
                     }
                 }
             }
         }
         
         /* computation of residual */
-        for (int i = 1; i < imax+1; i++) {  //! perfect loop
-            for (int j = 1; j < jmax+1; j++) {
-                if (flag[i][j] & C_F) {
-                    double eps_E = ((flag[i+1][j] & C_F) ? 1.0 : 0.0);
-                    double eps_W = ((flag[i-1][j] & C_F) ? 1.0 : 0.0);
-                    double eps_N = ((flag[i][j+1] & C_F) ? 1.0 : 0.0);
-                    double eps_S = ((flag[i][j-1] & C_F) ? 1.0 : 0.0);
+        for (int i = 1; i < imax_serial+1; i++) {  //! perfect loop
+            for (int j = 1; j < jmax_serial+1; j++) {
+                if (flag_serial[i][j] & C_F) {
+                    double eps_E = ((flag_serial[i+1][j] & C_F) ? 1.0 : 0.0);
+                    double eps_W = ((flag_serial[i-1][j] & C_F) ? 1.0 : 0.0);
+                    double eps_N = ((flag_serial[i][j+1] & C_F) ? 1.0 : 0.0);
+                    double eps_S = ((flag_serial[i][j-1] & C_F) ? 1.0 : 0.0);
 
                     /* only fluid cells */
-                    double add = (eps_E * (p[i+1][j] - p[i][j]) - 
-                        eps_W * (p[i][j] - p[i-1][j])) * rdx2  +
-                        (eps_N * (p[i][j+1] - p[i][j]) -
-                        eps_S * (p[i][j] - p[i][j-1])) * rdy2  -  rhs[i][j];
+                    double add = (eps_E * (p_serial[i+1][j] - p_serial[i][j]) - 
+                        eps_W * (p_serial[i][j] - p_serial[i-1][j])) * rdx2  +
+                        (eps_N * (p_serial[i][j+1] - p_serial[i][j]) -
+                        eps_S * (p_serial[i][j] - p_serial[i][j-1])) * rdy2  -  rhs_serial[i][j];
                     res += add * add;
                 }
             }
         }
-        res = sqrt(res / fluid_cells) / p0;
+        res = sqrt(res / fluid_cells_serial) / p0;
         
         /* convergence? */
-        if (res < eps) break;
+        if (res < eps_serial) break;
     }
 
     return res;
@@ -180,21 +179,21 @@ double poisson() {
  * @brief Update the velocity values based on the tentative
  * velocity values and the new pressure matrix
  */
-void update_velocity() {   
-    for (int i = 1; i < imax-2; i++) {  //! perfect loop
-        for (int j = 1; j < jmax-1; j++) {
+void update_velocity_serial() {   
+    for (int i = 1; i < imax_serial-2; i++) {  //! perfect loop
+        for (int j = 1; j < jmax_serial-1; j++) {
             /* only if both adjacent cells are fluid cells */
-            if ((flag[i][j] & C_F) && (flag[i+1][j] & C_F)) {
-                u[i][j] = f[i][j] - (p[i+1][j] - p[i][j]) * del_t / delx;
+            if ((flag_serial[i][j] & C_F) && (flag_serial[i+1][j] & C_F)) {
+                u_serial[i][j] = f_serial[i][j] - (p_serial[i+1][j] - p_serial[i][j]) * del_t_serial / delx_serial;
             }
         }
     }
     
-    for (int i = 1; i < imax-1; i++) {
-        for (int j = 1; j < jmax-2; j++) {  //! perfect loop
+    for (int i = 1; i < imax_serial-1; i++) {
+        for (int j = 1; j < jmax_serial-2; j++) {  //! perfect loop
             /* only if both adjacent cells are fluid cells */
-            if ((flag[i][j] & C_F) && (flag[i][j+1] & C_F)) {
-                v[i][j] = g[i][j] - (p[i][j+1] - p[i][j]) * del_t / dely;
+            if ((flag_serial[i][j] & C_F) && (flag_serial[i][j+1] & C_F)) {
+                v_serial[i][j] = g_serial[i][j] - (p_serial[i][j+1] - p_serial[i][j]) * del_t_serial / dely_serial;
             }
         }
     }
@@ -205,33 +204,33 @@ void update_velocity() {
  * @brief Set the timestep size so that we satisfy the Courant-Friedrichs-Lewy
  * conditions. Otherwise the simulation becomes unstable.
  */
-void set_timestep_interval() {
-    /* del_t satisfying CFL conditions */
-    if (tau >= 1.0e-10) { /* else no time stepsize control */
+void set_timestep_interval_serial() {
+    /* del_t_serial satisfying CFL conditions */
+    if (tau_serial >= 1.0e-10) { /* else no time stepsize control */
         double umax = 1.0e-10;
         double vmax = 1.0e-10; 
         
-        for (int i = 0; i < imax+2; i++) {
-            for (int j = 1; j < jmax+2; j++) {  //! perfect loop
-                umax = fmax(fabs(u[i][j]), umax);
+        for (int i = 0; i < imax_serial+2; i++) {
+            for (int j = 1; j < jmax_serial+2; j++) {  //! perfect loop
+                umax = fmax(fabs(u_serial[i][j]), umax);
             }
         }
 
-        for (int i = 1; i < imax+2; i++) {
-            for (int j = 0; j < jmax+2; j++) {  //! perfect loop
-                vmax = fmax(fabs(v[i][j]), vmax);
+        for (int i = 1; i < imax_serial+2; i++) {
+            for (int j = 0; j < jmax_serial+2; j++) {  //! perfect loop
+                vmax = fmax(fabs(v_serial[i][j]), vmax);
             }
         }
 
-        double deltu = delx / umax;
-        double deltv = dely / vmax; 
-        double deltRe = 1.0 / (1.0 / (delx * delx) + 1 / (dely * dely)) * Re / 2.0;
+        double deltu = delx_serial / umax;
+        double deltv = dely_serial / vmax; 
+        double deltRe = 1.0 / (1.0 / (delx_serial * delx_serial) + 1 / (dely_serial * dely_serial)) * Re_serial / 2.0;
 
         if (deltu < deltv) {
-            del_t = fmin(deltu, deltRe);
+            del_t_serial = fmin(deltu, deltRe);
         } else {
-            del_t = fmin(deltv, deltRe);
+            del_t_serial = fmin(deltv, deltRe);
         }
-        del_t = tau * del_t; /* multiply by safety factor */
+        del_t_serial = tau_serial * del_t_serial; /* multiply by safety factor */
     }
 }
