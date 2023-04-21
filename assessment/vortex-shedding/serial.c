@@ -14,7 +14,7 @@
 #include "args.h" // for fixed_dt
 //! ensure avoidance of data corruption with parallel workflow
 
-void serial_looping(double ** u_return, double ** v_return, int * u_size_y_return, int * u_size_x_return, int * v_size_y_return, int * v_size_x_return) {
+void serial_looping() {
     setup_serial();
     allocate_arrays_serial();
     problem_set_up_serial();
@@ -46,11 +46,12 @@ void serial_looping(double ** u_return, double ** v_return, int * u_size_y_retur
         }
         */
     } /* End of main loop */
-    * u_size_y_return = u_size_y_serial;
-    * u_size_x_return = u_size_x_serial;
-    * v_size_y_return = v_size_y_serial;
-    * v_size_x_return = v_size_x_serial;
-    u_return = u_serial;
-    v_return = v_serial;
+
+    // * u_size_y_return = u_size_y_serial;
+    // * u_size_x_return = u_size_x_serial;
+    // * v_size_y_return = v_size_y_serial;
+    // * v_size_x_return = v_size_x_serial;
+    // u_return = u_serial;
+    // v_return = v_serial;
 
 }

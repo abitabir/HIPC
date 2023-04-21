@@ -9,6 +9,7 @@
 #include <papi.h>
 
 #include "data.h"
+#include "data_serial.h"
 #include "vtk.h"
 #include "setup.h"
 #include "boundary.h"
@@ -56,19 +57,17 @@ void parallel_looping(int * i_return, double * r_return, double * t_return) {
 
 int validated() {
     #define MAX_ERR 1e-6
-    double ** u_serial, ** v_serial;
-    int u_size_y_serial, u_size_x_serial, v_size_y_serial, v_size_x_serial;
+    // double ** u_serial, ** v_serial;
+    // int u_size_y_serial, u_size_x_serial, v_size_y_serial, v_size_x_serial;
     double temp_u, temp_u_serial, temp_v, temp_v_serial;
-    serial_looping(u_serial, v_serial, &u_size_y_serial, &u_size_x_serial, &v_size_y_serial, &v_size_x_serial);
+    serial_looping();
     printf("Validating...\n");
-    printf("%lf", u_size_y_serial);    
     for (int j = 0; j < u_size_y_serial; j++) {
-        printf("sommat");
         for (int i = 0; i < u_size_x_serial; i++) {
             temp_u = u[i][j];
             temp_u_serial = u_serial[i][j];
-            printf("u[i][j] = %lf\n u_serial[i][j] = %lf\n fabs(u[i][j] - u_serial[i][j]) = %lf\n", temp_u, temp_u_serial, fabs(temp_u - temp_u_serial));
-            if (fabs(temp_u - temp_v) > MAX_ERR) {
+            if (fabs(temp_u - temp_u_serial) > MAX_ERR) {
+                printf("Invalidated at:");
                 printf("u[i][j] = %lf\n u_serial[i][j] = %lf\n fabs(u[i][j] - u_serial[i][j]) = %lf\n", temp_u, temp_u_serial, fabs(temp_u - temp_u_serial));
                 return 0;
             }
@@ -80,6 +79,7 @@ int validated() {
             temp_v = v[i][j];
             temp_v_serial = v_serial[i][j];
             if (fabs(temp_v - temp_v_serial) > MAX_ERR) {
+                printf("Invalidated at:");
                 printf("v[i][j] = %lf\n v_serial[i][j] = %lf\n fabs(v[i][j] - v_serial[i][j]) = %lf\n", temp_v, temp_v_serial, fabs(temp_v - temp_v_serial));
                 return 0;
             }
