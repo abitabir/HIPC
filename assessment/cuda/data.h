@@ -14,6 +14,10 @@
 
 #define C_F      0x0010    /* This cell is a fluid cell */
 
+#define dimx 512  // number of threads in x direction
+#define dimy 128  // number of threads in y direction
+//#define iters dimx*dimy  // number of all iterations to be done by threads
+
 extern double xlength;     /* Width of simulated domain */
 extern double ylength;     /* Height of simulated domain */
 extern int imax;           /* Number of cells horizontally */
@@ -60,8 +64,11 @@ extern int flag_size_x, flag_size_y;
 extern int flag_size;
 extern char * flag;
 
-double *alloc_1d_array(int m, int n);
-char *alloc_1d_char_array(int m, int n);
-void free_1d_array(void * array);
+extern dim3 block;
+extern dim3 grid;
+
+// double *alloc_1d_array(int m, int n);
+// char *alloc_1d_char_array(int m, int n);
+// void free_1d_array(void * array);
 
 #endif

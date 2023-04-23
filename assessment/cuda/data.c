@@ -53,6 +53,12 @@ int flag_size_x, flag_size_y;
 int flag_size;
 char * flag;
 
+dim3 grid, block;
+block.x = 2;  // or 8
+block.y = 128; // or 32  // better to be longer for memory coalesing
+grid.x = jmax / block.x;  // 128 / 2 = 64 or 128 / 8 = 16
+grid.y = imax / block.y;  // 512 / 128 = 4 or 512 / 32 = 16  // as arrays are column major on GPUs
+
 /**
  * @brief Allocate a 2D array that is addressable using square brackets
  * 
@@ -60,16 +66,16 @@ char * flag;
  * @param n The second dimension of the array
  * @return double** A 2D array
  */
-double *alloc_1d_array(int m, int n) {
-  	double *x;
-  	// int i;
+// double *alloc_1d_array(int m, int n) {
+//   	double *x;
+//   	// int i;
 
-  	x = (double *)malloc(m*n*sizeof(double));
-  	// x[0] = (double *)calloc(m*n,sizeof(double));
-  	// for ( i = 1; i < m; i++ )
-    // 	x[i] = &x[0][i*n];
-	return x;
-}
+//   	x = (double *)malloc(m*n*sizeof(double));
+//   	// x[0] = (double *)calloc(m*n,sizeof(double));
+//   	// for ( i = 1; i < m; i++ )
+//     // 	x[i] = &x[0][i*n];
+// 	return x;
+// }
 
 
 /**
@@ -79,23 +85,23 @@ double *alloc_1d_array(int m, int n) {
  * @param n The second dimension of the array
  * @return char** A 2D array
  */
-char *alloc_1d_char_array(int m, int n) {
-  	char *x;
-  	// int i;
+// char *alloc_1d_char_array(int m, int n) {
+//   	char *x;
+//   	// int i;
 
-  	x = (char *)malloc(m*n*sizeof(char));
-  	// x[0] = (char *)calloc(m*n,sizeof(char));
-  	// for ( i = 1; i < m; i++ )
-    // 	x[i] = &x[0][i*n];
-	return x;
-}
+//   	x = (char *)malloc(m*n*sizeof(char));
+//   	// x[0] = (char *)calloc(m*n,sizeof(char));
+//   	// for ( i = 1; i < m; i++ )
+//     // 	x[i] = &x[0][i*n];
+// 	return x;
+// }
 
-/**
- * @brief Free a 2D array
- * 
- * @param array The 2D array to free
- */
-void free_1d_array(void * array) {
-	// free(array[0]);
-	free(array);
-}
+// /**
+//  * @brief Free a 2D array
+//  * 
+//  * @param array The 2D array to free
+//  */
+// void free_1d_array(void * array) {
+// 	// free(array[0]);
+// 	free(array);
+// }

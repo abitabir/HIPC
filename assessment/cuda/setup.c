@@ -6,6 +6,7 @@
 #include "data.h"
 #include "vtk.h"
 #include "boundary.h"
+#include "setup.cu"
 
 /**
  * @brief Set up some default values before arguments are parsed.
@@ -71,66 +72,86 @@ void free_arrays() {
  * adjacent to boundary cells have their relevant flags set too.
  */
 void problem_set_up() {
-    int index;
-    for (int i = 0; i < imax+2; i++) {
-        for (int j = 0; j < jmax+2; j++) {  //! perfect loop
-            index = i * jmax + j;
-            u[index] = ui;
-            v[index] = vi;
-            p[index] = 0.0;
-        }
-    }
+    problem_set_up_1<<<grid, block>>>(u, v, p, ui, vi, 0.0, (imax+2)*(jmax+2), jmax+2);
+    // int index;
+    // for (int i = 0; i < imax+2; i++) {
+    //     for (int j = 0; j < jmax+2; j++) {  //! perfect loop
+    //         index = i * jmax + j;
+    //         u[index] = ui;
+    //         v[index] = vi;
+    //         p[index] = 0.0;
+    //     }
+    // }
+
+    // don't need to sync here
 
     /* Mark a circular obstacle as boundary cells, the rest as fluid */
     double mx = 20.0 / 41.0 * jmax * dely;
     double my = mx;
     double rad1 = 5.0 / 41.0 * jmax * dely;
-    for (int i = 1; i <= imax; i++) {
-        for (int j = 1; j <= jmax; j++) {
-            double x = (i - 0.5) * delx - mx;
-            double y = (j - 0.5) * dely - my;
-            index = i * jmax + j;
-            flag[index] = (x*x + y*y <= rad1*rad1) ? C_B : C_F;
-        }
-    }
-    
-    int j;
-    /* Mark the north & south boundary cells */
-    for (int i = 0; i <= imax + 1; i++) {
-        flag[i * jmax]      = C_B;
-        index = i * jmax + jmax + 1;
-        flag[index] = C_B;
-    }
-    /* Mark the east and west boundary cells */
-    for (int j = 1; j <= jmax; j++) {
-        index = (imax + 1) * jmax + j;
-        flag[j]      = C_B;
-        flag[index] = C_B;
-    }
+
+    problem_set_up_2<<<grid, block>>>(flag, mx, my, delx, dely, rad1, jmax, imax*jmax);
+   
+    // for (int i = 1; i <= imax; i++) {
+    //     for (int j = 1; j <= jmax; j++) {
+    //         double x = (i - 0.5) * delx - mx;
+    //         double y = (j - 0.5) * dely - my;
+    //         index = i * jmax + j;
+    //         flag[index] = (x*x + y*y <= rad1*rad1) ? C_B : C_F;
+    //     }
+    // }
+
+    problem_set_up_3<<<1, imax+2>>>(flag, jmax);
+    problem_set_up_4<<<1, jmax>>>(flag, imax, jmax);
+
+    // /* Mark the north & south boundary cells */
+    // for (int i = 0; i <= imax + 1; i++) {
+    //     flag[i * jmax]      = C_B;
+    //     index = i * jmax + jmax + 1;
+    //     flag[index] = C_B;
+    // }
+    // /* Mark the east and west boundary cells */
+    // for (int j = 1; j <= jmax; j++) {
+    //     index = (imax + 1) * jmax + j;
+    //     flag[j]      = C_B;
+    //     flag[index] = C_B;
+    // }
 
     fluid_cells = imax * jmax;
 
-    int index_left;
-    int index_right;
-    int index_up;
-    int index_down;
-    /* flags for boundary cells */
-    for (int i = 1; i <= imax; i++) {
-        for (int j = 1; j <= jmax; j++) {
-            index = i * jmax + j;
-            if (!(flag[index] & C_F)) {
-                fluid_cells--;
-                index_left = (i-1) * jmax + j;
-                index_right = (i+1) * jmax + j;
-                index_down = i * jmax + (j-1);
-                index_up = i * jmax + (j+1);
-                if (flag[index_left] & C_F) flag[index] |= B_W;
-                if (flag[index_right] & C_F) flag[index] |= B_E;
-                if (flag[index_down] & C_F) flag[index] |= B_S;
-                if (flag[index_up] & C_F) flag[index] |= B_N;
-            }
-        }
-    }
+    int * fluid_cell_ptr = fluid_cells;
+    
+    cudaMallocManaged(&fluid_cell_ptr, sizeOf(int));
+
+    cudaDeviceSynchronize();
+    
+    problem_set_up_5<<<grid, block>>>(flag, jmax, imax*jmax, fluid_cell_ptr);
+
+    // int index_left;
+    // int index_right;
+    // int index_up;
+    // int index_down;
+    // /* flags for boundary cells */
+    // for (int i = 1; i <= imax; i++) {
+    //     for (int j = 1; j <= jmax; j++) {
+    //         index = i * jmax + j;
+    //         if (!(flag[index] & C_F)) {
+    //             fluid_cells--;
+    //             index_left = (i-1) * jmax + j;
+    //             index_right = (i+1) * jmax + j;
+    //             index_down = i * jmax + (j-1);
+    //             index_up = i * jmax + (j+1);
+    //             if (flag[index_left] & C_F) flag[index] |= B_W;
+    //             if (flag[index_right] & C_F) flag[index] |= B_E;
+    //             if (flag[index_down] & C_F) flag[index] |= B_S;
+    //             if (flag[index_up] & C_F) flag[index] |= B_N;
+    //         }
+    //     }
+    // }
 
 	apply_boundary_conditions();
+    
+    cudaDeviceSynchronize();
+
+    fluid_cells = * fluid_cell_ptr;
 }
