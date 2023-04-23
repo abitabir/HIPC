@@ -24,6 +24,7 @@ obj/%.o: %.c
 libs:
 	$(MM) load perf/PAPI/5.6.0-GCCcore-7.3.0
 	$(MM) load compiler/GCC/11.2.0
+	$(MM) load system/CUDA/11.0.2-GCC-9.3.0
 
 vortex: $(OBJ)
 	$(CC) -o $@ $^ $(CFLAGS) $(MATHFLAG) $(PAPIFLAG) $(OPENMPFLAG) $(PGFLAG)
